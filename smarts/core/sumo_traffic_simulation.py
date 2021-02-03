@@ -35,7 +35,7 @@ from smarts.core.coordinates import Heading, Pose
 from smarts.core.provider import ProviderState, ProviderTLS, ProviderTrafficLight
 from smarts.core.vehicle import VEHICLE_CONFIGS, VehicleState
 from smarts.core.utils import networking
-from smarts.core.utils.logging import surpress_stdout
+from smarts.core.utils.logging import suppress_stdout
 from smarts.core.utils.sumo import SUMO_PATH, traci
 
 import traci.constants as tc
@@ -54,19 +54,35 @@ class SumoTrafficSimulation:
             WARNING:
                 Since our interface(TRACI) to SUMO is delayed by one simulation step,
                 setting a higher time resolution may lead to unexpected artifacts
+        num_external_sumo_clients:
+            wait for the specified number of other clients to connect to SUMO
+        sumo_port:
+            the port that sumo runs on
+        auto_start:
+            False to pause simulation when SMARTS run, and wait for user to click 
+            start on sumo-gui
+        endless_traffic:
+            Not remove vehicles by re-adding back vehicles that exit 
+        allow_reload:
+            True to reload existing SUMO
+        remove_agents_only_mode: 
+            Remove only agent vehicles used by SMARTS and not delete other sumo
+            vehicles when teardown
     """
 
     def __init__(
         self,
         headless=True,
         time_resolution=0.1,
-        num_clients=1,
         num_external_sumo_clients=0,
         sumo_port=None,
         auto_start=True,
         endless_traffic=True,
+        allow_reload=True,
         debug=True,
+        remove_agents_only_mode=False,
     ):
+        self._remove_agents_only_mode = remove_agents_only_mode
         self._log = logging.getLogger(self.__class__.__name__)
 
         self._debug = debug
@@ -88,8 +104,7 @@ class SumoTrafficSimulation:
         self._endless_traffic = endless_traffic
         self._to_be_teleported = dict()
         self._reserved_areas = dict()
-
-        atexit.register(self._destroy)
+        self._allow_reload = allow_reload
 
     def __repr__(self):
         return f"""SumoTrafficSim(
@@ -108,11 +123,10 @@ class SumoTrafficSimulation:
     def __str__(self):
         return repr(self)
 
-    def _destroy(self):
-        if atexit:
-            atexit.unregister(self._destroy)
-
+    def destroy(self):
         self._close_traci_and_pipes()
+        if not self._is_setup:
+            return
         self._sumo_proc.terminate()
         self._sumo_proc.wait()
 
@@ -145,7 +159,7 @@ class SumoTrafficSimulation:
             )
             time.sleep(0.05)  # give SUMO time to start
             try:
-                with surpress_stdout():
+                with suppress_stdout():
                     self._traci_conn = traci.connect(
                         sumo_port,
                         numRetries=100,
@@ -240,7 +254,7 @@ class SumoTrafficSimulation:
 
         if restart_sumo:
             self._initialize_traci_conn()
-        else:
+        elif self._allow_reload:
             self._traci_conn.load(self._base_sumo_load_params())
 
         assert self._traci_conn is not None, "No active traci conn"
@@ -273,6 +287,18 @@ class SumoTrafficSimulation:
             self._traci_conn.close()
             self._traci_conn = None
 
+    def _remove_vehicles(self):
+        vehicles_to_remove = None
+        if self._remove_agents_only_mode:
+            vehicles_to_remove = self._non_sumo_vehicle_ids
+        else:
+            vehicles_to_remove = self._non_sumo_vehicle_ids.union(
+                self._sumo_vehicle_ids
+            )
+
+        for vehicle_id in vehicles_to_remove:
+            self._traci_conn.vehicle.remove(vehicle_id)
+
     def teardown(self):
         self._log.debug("Tearing down SUMO traffic sim %s" % self)
         if not self._is_setup:
@@ -281,7 +307,9 @@ class SumoTrafficSimulation:
 
         assert self._is_setup
 
-        self._cumulative_sim_seconds = 0
+        self._remove_vehicles()
+        if self._allow_reload:
+            self._cumulative_sim_seconds = 0
         self._non_sumo_vehicle_ids = set()
         self._sumo_vehicle_ids = set()
         self._is_setup = False
@@ -656,6 +684,8 @@ class SumoTrafficSimulation:
 
             traffic_lights = []
             for link, state in zip(links, light_states):
+                if not link:
+                    continue
                 lane_start, lane_end, lane_via = [
                     self._scenario.road_network.lane_by_id(lane) for lane in link[0]
                 ]

@@ -145,6 +145,10 @@ class TrapManager:
                 ),
             )
             for v_id in sorted_vehicle_ids:
+                # Skip the capturing process if history traffic is used
+                if sim.scenario.traffic_history:
+                    break
+
                 vehicle = vehicles[v_id]
                 point = Point(vehicle.position)
 
@@ -251,8 +255,14 @@ class TrapManager:
         sim.vehicle_index.start_agent_observation(
             sim, vehicle_id, agent_id, agent_interface, planner
         )
+        agent_interface = sim.agent_manager.agent_interface_for_agent_id(agent_id)
         vehicle = sim.vehicle_index.switch_control_to_agent(
-            sim, vehicle_id, agent_id, recreate=True, hijacking=False
+            sim,
+            vehicle_id,
+            agent_id,
+            recreate=True,
+            hijacking=False,
+            agent_interface=agent_interface,
         )
         return vehicle
 

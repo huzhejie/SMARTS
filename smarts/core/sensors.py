@@ -298,7 +298,7 @@ class Sensors:
             and sensor_state.steps_completed == 1
             and agent_id in sim.agent_manager.ego_agent_ids
         ):
-            logger.warning(f"{agent_id} is done on the first step")
+            logger.warning(f"Agent Id: {agent_id} is done on the first step")
 
         return (
             Observation(
@@ -996,10 +996,7 @@ class WaypointsSensor(Sensor):
                 )
             elif isinstance(self._mission_planner.mission.task, CutIn):
                 waypoints_with_task = self._mission_planner.cut_in_waypoints(
-                    self._sim,
-                    self._vehicle.pose,
-                    self._vehicle,
-                    lazy_calculate_waypoints,
+                    self._sim, self._vehicle.pose, self._vehicle
                 )
 
         if waypoints_with_task:

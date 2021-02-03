@@ -1,10 +1,11 @@
-name: SMARTS CI
+name: SMARTS CI Base Tests
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   test:
     runs-on: ubuntu-18.04
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     container: huaweinoah/smarts:v0.4.3-pre
     strategy:
       matrix:
@@ -28,16 +29,7 @@ jobs:
             +extension RENDER \
             -logfile ./xdummy.log \
             -config /etc/X11/xorg.conf :1 &
-      # - name: Cache pip
-      #   id: cache-pip
-      #   uses: actions/cache@v2
-      #   with:
-      #     path: |
-      #       .venv
-      #       /usr/local/bin/scl
-      #     key: pip-${{hashFiles('requirements.txt')}}-${{hashFiles('setup.py')}}
       - name: Install dependencies
-        # if: steps.cache-pip.outputs.cache-hit != 'true'
         run: |
           python3.7 -m venv .venv
           . .venv/bin/activate
@@ -56,5 +48,6 @@ jobs:
             -n auto \
             ${{matrix.tests}} \
             --ignore=./smarts/core/tests/test_smarts_memory_growth.py \
+            --ignore=./smarts/env/tests/test_benchmark.py \
             --ignore=./smarts/env/tests/test_learning.py \
-            --ignore=./smarts/env/tests/test_benchmark.py
+            -k 'not test_long_determinism'
