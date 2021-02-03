@@ -19,11 +19,8 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-import os
-<<<<<<< HEAD
-=======
-import json
->>>>>>> 0617630fd8996492e87a69748ef8e58d77398c93
+import os, sys
+import json, re
 
 # Set environment to better support Ray
 os.environ["MKL_NUM_THREADS"] = "1"
@@ -93,6 +90,7 @@ def evaluate(
     num_episodes,
     headless,
     timestep_sec,
+    log_dir,
 ):
 
     torch.set_num_threads(1)
@@ -116,7 +114,7 @@ def evaluate(
     summary_log = LogInfo()
     logs = []
 
-    for episode in episodes(num_episodes):
+    for episode in episodes(num_episodes, etag=policy_class, dir=log_dir):
         observations = env.reset()
         state = observations[agent_id]
         dones, infos = {"__all__": False}, None
@@ -155,36 +153,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--level",
-<<<<<<< HEAD
-        help="Tasks available : [easy, medium, hard]",
-=======
         help="Levels available : [easy, medium, hard, no-traffic]",
->>>>>>> 0617630fd8996492e87a69748ef8e58d77398c93
         type=str,
         default="easy",
-    )
-    parser.add_argument(
-<<<<<<< HEAD
-        "--policy", help="path to policy class", default="TD3", type=str,
-    )
-    parser.add_argument("--models", default="models/", help="directory to saved models")
-    parser.add_argument(
-        "--episodes", help="number of training episodes", type=int, default=200
-    )
-    parser.add_argument(
-        "--timestep", help="environment timestep (sec)", type=float, default=0.1
-    )
-    parser.add_argument(
-        "--headless", help="run without envision", type=bool, default=False
-    )
-    parser.add_argument(
-        "--spec", help="spec file includes adapters and policy parameters", type=str
-    )
-=======
-        "--policy",
-        help="Policies available : [ppo, sac, ddpg, dqn, bdqn]",
-        type=str,
-        default="sac",
     )
     parser.add_argument("--models", default="models/", help="Directory to saved models")
     parser.add_argument(
@@ -201,41 +172,41 @@ if __name__ == "__main__":
         help="Path to spec file that includes adapters and policy parameters",
         type=str,
     )
-
->>>>>>> 0617630fd8996492e87a69748ef8e58d77398c93
+    parser.add_argument(
+        "--log-dir", help="Log directory location", default="logs", type=str,
+    )
     args = parser.parse_args()
 
-    # --------------------------------------------------------
+    if not os.path.exists(args.log_dir):
+        os.makedirs(args.log_dir)
+
+    m = re.search(
+        "ultra\.baselines\.[a-zA-Z0-9]+\:[a-zA-Z0-9]+\-[a-zA-Z0-9]+", args.models
+    )
+    policy_class = m.group(0)
+    print(args.models)
+    print(policy_class)
+
     if not os.path.exists(args.models):
         raise "Models not Found"
+
+    if not os.listdir(args.models):
+        raise "No models to evaluate"
 
     sorted_models = sorted(
         glob.glob(f"{args.models}/*"), key=lambda x: int(x.split("/")[-1])
     )
 
-<<<<<<< HEAD
-    policy_class = "ultra.baselines.sac:sac-v0"
-=======
-    with open("ultra/agent_pool.json", "r") as f:
-        data = json.load(f)
-        if args.policy in data["agents"].keys():
-            policy_path = data["agents"][args.policy]["path"]
-            policy_locator = data["agents"][args.policy]["locator"]
-        else:
-            raise ImportError("Invalid policy name. Please try again")
-
-    # Required string for smarts' class registry
-    policy_class = str(policy_path) + ":" + str(policy_locator)
-
->>>>>>> 0617630fd8996492e87a69748ef8e58d77398c93
     num_cpus = max(
         1, psutil.cpu_count(logical=False) - 1
     )  # remove `logical=False` to use all cpus
     ray_kwargs = default_ray_kwargs(num_cpus=num_cpus, num_gpus=num_gpus)
-    ray.init(**ray_kwargs)
+    ray.init()
     try:
         agent_id = "AGENT_008"
-        for episode in episodes(len(sorted_models), etag=args.policy):
+        for episode in episodes(
+            len(sorted_models), etag=policy_class, dir=args.log_dir
+        ):
             model = sorted_models[episode.index]
             print("model: ", model)
             episode_count = model.split("/")[-1]
@@ -243,11 +214,7 @@ if __name__ == "__main__":
             episode.info[episode.active_tag] = ray.get(
                 [
                     evaluate.remote(
-<<<<<<< HEAD
-                        experiment_dir=args.spec,
-=======
                         experiment_dir=args.experiment_dir,
->>>>>>> 0617630fd8996492e87a69748ef8e58d77398c93
                         agent_id=agent_id,
                         policy_class=policy_class,
                         seed=episode.eval_count,
@@ -257,6 +224,7 @@ if __name__ == "__main__":
                         num_episodes=int(args.episodes),
                         timestep_sec=float(args.timestep),
                         headless=args.headless,
+                        log_dir=args.log_dir,
                     )
                 ]
             )[0]
