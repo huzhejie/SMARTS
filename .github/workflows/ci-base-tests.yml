@@ -11,13 +11,13 @@ jobs:
     strategy:
       matrix:
         tests:
-          - ./envision
-          - ./smarts/contrib
-          - ./smarts/core
-          - ./smarts/env --ignore=./smarts/env/tests/test_rllib_hiway_env.py
-          - ./smarts/env/tests/test_rllib_hiway_env.py
-          - ./smarts/sstudio
-          - ./tests
+          # - ./envision
+          # - ./smarts/contrib
+          # - ./smarts/core
+          # - ./smarts/env --ignore=./smarts/env/tests/test_rllib_hiway_env.py
+          # - ./smarts/env/tests/test_rllib_hiway_env.py
+          # - ./smarts/sstudio
+          - ./tests/test_examples.py::test_frames_per_second
     steps:
       - name: Checkout
         uses: actions/checkout@v2

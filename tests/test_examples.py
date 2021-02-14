@@ -1,6 +1,8 @@
-import tempfile
 import importlib
 import pytest
+import tempfile
+import timeit
+import time
 
 
 @pytest.mark.parametrize(
@@ -19,6 +21,29 @@ def test_examples(example):
         max_episode_steps=100,
     )
 
+# pytest -v --full-trace --forked ./tests/test_examples.py::test_frames_per_second
+
+def test_frames_per_second(monkeypatch):
+    minimum_fps = 30
+
+    # monkeypatch.setattr(websocket, "WebSocketApp", FakeWebSocketApp)
+    main = importlib.import_module("examples.single_agent").main
+    cvp = importlib.import_module("examples.single_agent").ChaseViaPointsAgent
+   
+    scenarios=["scenarios/loop"]
+    sim_name=None
+    headless=True
+    num_episodes=1
+    seed=42
+    max_episode_steps=10
+
+    start_time = time.perf_counter()
+    main(scenarios,sim_name,headless,num_episodes,seed,max_episode_steps)
+    elapsed_time = time.perf_counter() - start_time
+
+    time_per_frame = 1 / minimum_fps
+    elapsed_time_per_frame = elapsed_time / max_episode_steps / num_episodes
+    assert elapsed_time_per_frame < time_per_frame
 
 def test_multi_instance_example():
     main = importlib.import_module("examples.multi_instance").main
