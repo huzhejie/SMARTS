@@ -5,7 +5,6 @@ from smarts.core.agent_interface import AgentInterface, AgentType
 from smarts.core.agent import AgentSpec, Agent
 from smarts.core.sumo_traffic_simulation import SumoTrafficSimulation
 from smarts.core.scenario import Scenario
-from smarts.core.utils.logging import timeit
 from envision.client import Client as Envision
 
 from examples import default_argument_parser
