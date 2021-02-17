@@ -478,6 +478,12 @@ class SMARTS(ShowBase):
     def observe_from(self, vehicle_ids):
         return self._agent_manager.observe_from(self, vehicle_ids)
 
+    def teleport_start_elapsed_time(self, start_time: float):
+        """ Changes the global simulation seconds of smarts to start_time
+        """
+        self.taskMgr.clock.set_frame_time(start_time)
+        self._elapsed_sim_time = start_time
+
     @property
     def road_stiffness(self):
         return self._bullet_client.getDynamicsInfo(self._ground_bullet_id, -1)[9]

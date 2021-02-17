@@ -44,6 +44,7 @@ def main(scenarios, headless, seed):
             smarts.switch_ego_agent({agent_id: agent_spec.interface})
 
             observations = smarts.reset(scenario)
+            smarts.teleport_start_elapsed_time(mission.start_time)
 
             dones = {agent_id: False}
             while not dones[agent_id]:
