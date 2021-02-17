@@ -26,36 +26,33 @@ def main(scenarios, headless, seed):
         traffic_sim=SumoTrafficSimulation(headless=True, auto_start=True),
         envision=Envision(),
     )
-    with timeit("Imitation learning time"):
-        for _ in scenarios:
-            scenario = next(scenarios_iterator)
-            agent_missions = scenario.discover_missions_of_traffic_histories()
+    for _ in scenarios:
+        scenario = next(scenarios_iterator)
+        agent_missions = scenario.discover_missions_of_traffic_histories()
 
-            for agent_id, mission in agent_missions.items():
-                agent_spec = AgentSpec(
-                    interface=AgentInterface.from_type(
-                        AgentType.Laner, max_episode_steps=None
-                    ),
-                    agent_builder=KeepLaneAgent,
+        for agent_id, mission in agent_missions.items():
+            agent_spec = AgentSpec(
+                interface=AgentInterface.from_type(
+                    AgentType.Laner, max_episode_steps=None
+                ),
+                agent_builder=KeepLaneAgent,
+            )
+            agent = agent_spec.build_agent()
+
+            smarts.switch_ego_agent({agent_id: agent_spec.interface})
+            smarts.history_set_start_elapsed_time(mission.start_time)
+            agent_missions[agent_id].start_time = 0
+            scenario.set_ego_missions({agent_id: agent_missions[agent_id]})
+            observations = smarts.reset(scenario)
+
+            dones = {agent_id: False}
+            while not dones[agent_id]:
+                agent_obs = observations[agent_id]
+                agent_action = agent.act(agent_obs)
+
+                observations, rewards, dones, infos = smarts.step(
+                    {agent_id: agent_action}
                 )
-                agent = agent_spec.build_agent()
-
-                smarts.switch_ego_agent({agent_id: agent_spec.interface})
-                print("Before reset")
-                smarts.history_set_start_elapsed_time(mission.start_time)
-                agent_missions[agent_id].start_time = 0
-                scenario.set_ego_missions({agent_id: agent_missions[agent_id]})
-                print(f"start time: {mission.start_time} {agent_missions[agent_id].start_time}")
-                observations = smarts.reset(scenario)
-
-                dones = {agent_id: False}
-                while not dones[agent_id]:
-                    agent_obs = observations[agent_id]
-                    agent_action = agent.act(agent_obs)
-
-                    observations, rewards, dones, infos = smarts.step(
-                        {agent_id: agent_action}
-                    )
 
     smarts.destroy()
 
