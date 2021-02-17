@@ -70,7 +70,7 @@ class TrafficHistoryProvider:
             ),
             default=None,
         )
-        time_with_offset = round(timestamp+self.start_time_offset,1)
+        time_with_offset = round(timestamp + self.start_time_offset, 1)
         if (
             not self._current_traffic_history
             or timestamp is None
