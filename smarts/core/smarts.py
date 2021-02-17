@@ -210,8 +210,10 @@ class SMARTS(ShowBase):
         # In this way, observations and reward are computed with data that is
         # consistently with one step of latencey and the agent will observe consistent
         # data.
+        print(f"Sim time before step: {self._elapsed_sim_time}")
         dt = self.taskMgr.clock.get_dt()
         self._elapsed_sim_time = self.taskMgr.clock.get_frame_time()
+        print(self._elapsed_sim_time)
 
         # 1. Fetch agent actions
         all_agent_actions = self._agent_manager.fetch_agent_actions(self, agent_actions)
@@ -478,11 +480,13 @@ class SMARTS(ShowBase):
     def observe_from(self, vehicle_ids):
         return self._agent_manager.observe_from(self, vehicle_ids)
 
-    def teleport_start_elapsed_time(self, start_time: float):
+    def history_set_start_elapsed_time(self, start_time: float):
         """ Changes the global simulation seconds of smarts to start_time
         """
-        self.taskMgr.clock.set_frame_time(start_time)
-        self._elapsed_sim_time = start_time
+        print(f"Teleported to: {start_time}")
+        # self.taskMgr.clock.set_frame_time(start_time)
+        # self._elapsed_sim_time = start_time
+        self._traffic_history_provider.set_start_time(start_time)
 
     @property
     def road_stiffness(self):
