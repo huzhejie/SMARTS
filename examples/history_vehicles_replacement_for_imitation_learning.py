@@ -43,7 +43,7 @@ def main(scenarios, headless, seed):
             smarts.history_set_start_elapsed_time(mission.start_time)
             modified_mission = Mission(
                 goal=agent_missions[agent_id].goal,
-                start_time=.0,
+                start_time=0.0,
                 start=agent_missions[agent_id].start,
             )
             scenario.set_ego_missions({agent_id: modified_mission})
