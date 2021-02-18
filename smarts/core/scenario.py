@@ -116,7 +116,7 @@ class Via:
     required_speed: float
 
 
-@dataclass()
+@dataclass(frozen=True)
 class Mission:
     start: Start
     goal: Goal

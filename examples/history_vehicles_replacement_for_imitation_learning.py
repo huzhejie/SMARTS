@@ -40,7 +40,6 @@ def main(scenarios, headless, seed):
 
             smarts.switch_ego_agent({agent_id: agent_spec.interface})
             smarts.history_set_start_elapsed_time(mission.start_time)
-            agent_missions[agent_id].start_time = 0
             scenario.set_ego_missions({agent_id: agent_missions[agent_id]})
             observations = smarts.reset(scenario)
 
